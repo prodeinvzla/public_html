@@ -1,21 +1,23 @@
 body{
-  font: 15px/1.5 Arial, Helvetica, sans-serif;
+  font: 15px/1.5  Georgia, Arial, Helvetica, sans-serif;
   padding:0;
   margin:0;
   background-color:#f4f4f4;
 }
 
 /* global */
+ul, h1, h2, h3, h4, h5, h6{
+  margin:0;
+  padding:0;
+
+}
+
 .container{
   width:80%;
   margin:auto;
   overflow:hidden;
 }
 
-ul{
-  margin:0;
-  padding:0;
-}
 
 .button_1{
   height:38px;
@@ -37,7 +39,7 @@ ul{
 
 /*header**/
 header{
-  background:#5DADE2;
+  background:#0B45B0;
   color:#ffffff;
   padding-top:30px;
   min-height:70px;
@@ -48,45 +50,79 @@ header{
 header a{
   color:#ffffff;
   text-decoration:none;
-  text-transform: uppercase;
   font-size: 16px;
 }
 
+header h1{
+  color:#ffffff;
+  font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+  font-weight:normal;
+  font-size:40px;
+}
 
+header h4{
+  text-align:right;
+  color:#E0E3E5;
+}
+
+header h6{
+  text-align:right;
+  color:#E0E3E5;
+  opacity: 0.5;
+}
 header li{
-  float:left;
-  display:inline;
-  padding: 0 20px 0 20px;
-}
-
-header #titulo{
-  float:left;
-}
-
-header #titulo h1{
-  margin:0;
+  display:inline-block;
+  padding: 0 10px 0 10px;
 }
 
 header nav{
   float:right;
-  margin-top:15px;
+}
+
+#titulo_logo{
+  display:inline-block;
+}
+
+#titulo_logo::before{
+  background-image:url('../img/logo_blanco.png');
+  background-size: 100% 100%;
+  content:"";
+  display: inline-block;
+  width:85px;
+  height:97px;
+  white-space:nowrap;
+}
+
+header #titulo{
+  vertical-align: top;
+  display:inline-block;
+}
+
+header #titulo_nombre{
+  display:inline-block;
+}
+
+header nav{
+  margin:0px auto;
+  width: 90%;
 }
 
 header .highlight, header .current a{
-  color:#1A5276;
-  font-weight:bold;
+  background-color:#5DADE2;
+  font-weight:normal;
 }
 
 header a:hover{
-  color:#1A5276;
-  font-weight:bold;
+  color:#ffffff;
+  font-weight:normal;
+  background-color:#5DADE2;
 }
 
 /*showcase*/
 #showcase{
   min-height:400px;
-  background:url('../img/logo_opc.png') no-repeat;
-  background-size: 1000px;
+  background:url('../img/logo_solo.png');
+  background-size: 100px;
   text-align:center;
 
 }
