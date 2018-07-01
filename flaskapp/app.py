@@ -15,8 +15,8 @@ localdb = "mysql+pymysql://abcprode_admin:lockboxes11@localhost/abcprode_princip
 SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
     username="prodeinvzla",
     password="lockboxes11",
-    hostname="<the database host address from the 'Databases' tab>",
-    databasename="<the database name you chose, probably yourusername$comments>",
+    hostname="prodeinvzla.mysql.pythonanywhere-services.com",
+    databasename="prodeinvzla$abcprode_principal",
 )
 
 if os.getenv('USERNAME') == 'prodeinvzla':
