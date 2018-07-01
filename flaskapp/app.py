@@ -3,6 +3,7 @@ from flaskext.mysql import MySQL
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
+from pymysql.cursors import DictCursor
 
 app = Flask(__name__)
 
@@ -12,11 +13,11 @@ app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 app.config['MYSQL_DATABASE_USER'] = 'abcprode_admin'
 app.config['MYSQL_DATABASE_PASSWORD'] = 'lockboxes11'
 app.config['MYSQL_DATABASE_DB'] = 'abcprode_principal'
-app.config['MYSQL_DATABASE_CURSORCLASS'] = 'DictCursor'
+#app.config['MYSQL_DATABASE_CURSORCLASS'] = 'DictCursor'
 
 # init MYSQL
-mysql = MySQL(app)
-#mysql.init_app(app)
+mysql = MySQL(cursorclass=DictCursor)
+mysql.init_app(app)
 
 
 def is_logged_in(f):
@@ -83,7 +84,7 @@ def register():
         cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)",
                     (name, email, username, password))
 
-        mysql.connection.commit()
+        mysql.get_db().commit()
         cur.close()
 
         flash('You are now registered and can log in', 'success')
@@ -165,7 +166,7 @@ def edit_article(id):
         form.body.data = request.form['body']
         if form.validate():
             cur.execute("update articles set title=%s, body=%s where id = %s", (form.title.data,form.body.data,[id]))
-            mysql.connection.commit()
+            mysql.get_db().commit()
             cur.close()
             flash('Article updated', 'success')
             return redirect(url_for('dashboard'))
@@ -177,7 +178,7 @@ def edit_article(id):
 def delete_article(id):
     cur = mysql.get_db().cursor()
     cur.execute("delete from articles where id = %s", [id])
-    mysql.connection.commit()
+    mysql.get_db().commit()
     cur.close()
     flash('Article deleted', 'success')
     return redirect(url_for('dashboard'))
@@ -194,7 +195,7 @@ def add_article():
         author = session['username']
         cur.execute("INSERT INTO articles(title, body, author) VALUES(%s, %s, %s)",
                     (title, body, author))
-        mysql.connection.commit()
+        mysql.get_db().commit()
         cur.close()
         flash('Article created', 'success')
         return redirect(url_for('dashboard'))
