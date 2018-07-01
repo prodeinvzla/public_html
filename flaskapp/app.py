@@ -10,11 +10,20 @@ app = Flask(__name__)
 
 # Config MySQL
 
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
-app.config['MYSQL_DATABASE_USER'] = 'abcprode_admin'
+
+
+app.config['MYSQL_DATABASE_HOST'] = 'prodeinvzla.mysql.pythonanywhere-services.com'
+app.config['MYSQL_DATABASE_USER'] = 'prodeinvzla'
 app.config['MYSQL_DATABASE_PASSWORD'] = 'lockboxes11'
-app.config['MYSQL_DATABASE_DB'] = 'abcprode_principal'
-#app.config['MYSQL_DATABASE_CURSORCLASS'] = 'DictCursor'
+app.config['MYSQL_DATABASE_DB'] = 'prodeinvzla$abcprode_principal'
+
+
+
+# app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+# app.config['MYSQL_DATABASE_USER'] = 'abcprode_admin'
+# app.config['MYSQL_DATABASE_PASSWORD'] = 'lockboxes11'
+# app.config['MYSQL_DATABASE_DB'] = 'abcprode_principal'
+
 
 # init MYSQL
 mysql = MySQL(cursorclass=DictCursor)
