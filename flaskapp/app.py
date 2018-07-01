@@ -1,21 +1,54 @@
 from flask import Flask, render_template, flash, redirect, url_for, session, logging, request
-from flaskext.mysql import MySQL
+import datetime
+from flask_sqlalchemy import SQLAlchemy
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
-from pymysql.cursors import DictCursor
 import os
 
 app = Flask(__name__)
 
 # Config MySQL
 
+dbtouse = None
+localdb = "mysql+pymysql://abcprode_admin:lockboxes11@localhost/abcprode_principal"
+SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
+    username="prodeinvzla",
+    password="lockboxes11",
+    hostname="<the database host address from the 'Databases' tab>",
+    databasename="<the database name you chose, probably yourusername$comments>",
+)
+
+if os.getenv('USERNAME') == 'prodeinvzla':
+    dbtouse = SQLALCHEMY_DATABASE_URI
+else:
+    dbtouse = localdb
+
+app.config["SQLALCHEMY_DATABASE_URI"] = dbtouse # SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(100))
+    username = db.Column(db.String(100))
+    password = db.Column(db.String(100))
+    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
-app.config['MYSQL_DATABASE_HOST'] = 'prodeinvzla.mysql.pythonanywhere-services.com'
-app.config['MYSQL_DATABASE_USER'] = 'prodeinvzla'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'lockboxes11'
-app.config['MYSQL_DATABASE_DB'] = 'prodeinvzla$abcprode_principal'
+class Article(db.Model):
+    __tablename__ = "articles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255))
+    author = db.Column(db.String(100))
+    body = db.Column(db.Text())
+    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
 
@@ -26,8 +59,19 @@ app.config['MYSQL_DATABASE_DB'] = 'prodeinvzla$abcprode_principal'
 
 
 # init MYSQL
-mysql = MySQL(cursorclass=DictCursor)
-mysql.init_app(app)
+# mysql = MySQL(cursorclass=DictCursor)
+# mysql.init_app(app)
+
+
+
+def run_sql(statement, output=True):
+    cur = db.session.execute(statement)
+    db.session.commit()
+    result = None
+    if output:
+        result = cur.fetchall()
+    cur.close()
+    return result
 
 
 def is_logged_in(f):
@@ -53,23 +97,17 @@ def quiene_somos():
 
 @app.route('/articles')
 def articles():
-    cur = mysql.get_db().cursor()
-    result = cur.execute("SELECT * FROM ARTICLES")
-    articles = cur.fetchall()
-    if result > 0:
+    articles = run_sql("SELECT * FROM ARTICLES")
+    if len(articles) > 0:
         return render_template("articles.html", articles=articles)
     msg = 'No articles found'
     return render_template('articles.html', articles=articles, msg=msg)
-    cur.close()
 
 
 @app.route('/articles/<string:id>')
 def article(id):
-    cur = mysql.get_db().cursor()
-    cur.execute("SELECT * FROM ARTICLES WHERE id = %s", [id])
-    art = cur.fetchone()
-    cur.close()
-    return render_template('article.html', article=art)
+    result = run_sql("SELECT * FROM ARTICLES WHERE id = '{}'".format(id))
+    return render_template('article.html', article=result[0])
 
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
@@ -90,13 +128,10 @@ def register():
         email = form.email.data
         username = form.username.data
         password = sha256_crypt.encrypt(str(form.password.data))
-        cur = mysql.get_db().cursor()
-        cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)",
-                    (name, email, username, password))
 
-        mysql.get_db().commit()
-        cur.close()
-
+        user = User(name=name, email=email, username=username, password=password)
+        db.session.add(user)
+        db.session.commit()
         flash('You are now registered and can log in', 'success')
 
         return redirect(url_for('articles'))
@@ -109,10 +144,9 @@ def login():
         username = request.form['username']
         password_candidate = request.form['password']
 
-        cur = mysql.get_db().cursor()
-        result = cur.execute("SELECT * FROM users where username = %s", [username])
-        if result > 0:
-            data = cur.fetchone()
+        result = run_sql("SELECT * FROM users where username = '{}'".format(username))
+        if len(result) == 1:
+            data = result[0]
             password = data['password']
             if sha256_crypt.verify(password_candidate, password):
                 app.logger.info('PASSWORD MATCH')
@@ -127,7 +161,9 @@ def login():
                 error = 'Invalid login'
                 app.logger.info(error)
                 return render_template('login.html', error=error)
-            cur.close()
+
+        elif len(result) > 1:
+            app.logger.info("Found more than 1 user: {}".format(result['name']))
         else:
             error = 'User not found'
             app.logger.info(error)
@@ -144,16 +180,13 @@ def logout():
 @app.route("/dashboard")
 @is_logged_in
 def dashboard():
-    cur = mysql.get_db().cursor()
-    result = cur.execute("SELECT * FROM ARTICLES")
-    articles = cur.fetchall()
-    if result > 0:
-        return render_template("dashboard.html", articles=articles)
+    result = run_sql("SELECT * FROM ARTICLES")
+    if len(result) > 0:
+        return render_template("dashboard.html", articles=result)
     else:
         msg = 'No articles found'
 
         return render_template("dashboard.html", msg=msg)
-    cur.close()
 
 class ArticleForm(Form):
     title = StringField('Title', [validators.Length(min=1, max=200)])
@@ -163,33 +196,28 @@ class ArticleForm(Form):
 @app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
 @is_logged_in
 def edit_article(id):
-    cur = mysql.get_db().cursor()
-    cur.execute("Select * from articles where id = %s", [id])
-    article = cur.fetchone()
+
+    result = run_sql("Select * from articles where id = '{}'".format(id))
     form = ArticleForm(request.form)
 
-    form.title.data = article['title']
-    form.body.data = article['body']
+    form.title.data = result[0]['title']
+    form.body.data = result[0]['body']
 
     if request.method == 'POST':
         form.title.data = request.form['title']
         form.body.data = request.form['body']
         if form.validate():
-            cur.execute("update articles set title=%s, body=%s where id = %s", (form.title.data,form.body.data,[id]))
-            mysql.get_db().commit()
-            cur.close()
+            run_sql("update articles set title='{}', body='{}' where id = '{}'".format(form.title.data,form.body.data,id), output=False)
+
             flash('Article updated', 'success')
             return redirect(url_for('dashboard'))
-    cur.close()
+
     return render_template('edit_article.html', form=form)
 
 @app.route("/delete_article/<string:id>", methods=['post'])
 @is_logged_in
 def delete_article(id):
-    cur = mysql.get_db().cursor()
-    cur.execute("delete from articles where id = %s", [id])
-    mysql.get_db().commit()
-    cur.close()
+    run_sql("delete from articles where id = '{}'".format(id), output=False)
     flash('Article deleted', 'success')
     return redirect(url_for('dashboard'))
 
@@ -200,13 +228,10 @@ def add_article():
     if request.method == 'POST' and form.validate():
         title = form.title.data
         body = form.body.data
-
-        cur = mysql.get_db().cursor()
         author = session['username']
-        cur.execute("INSERT INTO articles(title, body, author) VALUES(%s, %s, %s)",
-                    (title, body, author))
-        mysql.get_db().commit()
-        cur.close()
+        article = Article(title=title, author=author, body=body)
+        db.session.add(article)
+        db.session.commit()
         flash('Article created', 'success')
         return redirect(url_for('dashboard'))
 
