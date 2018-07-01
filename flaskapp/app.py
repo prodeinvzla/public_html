@@ -8,15 +8,15 @@ app = Flask(__name__)
 
 # Config MySQL
 
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'abcprode_admin'
-app.config['MYSQL_PASSWORD'] = 'lockboxes11'
-app.config['MYSQL_DB'] = 'abcprode_principal'
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['MYSQL_DATABASE_USER'] = 'abcprode_admin'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'lockboxes11'
+app.config['MYSQL_DATABASE_DB'] = 'abcprode_principal'
+app.config['MYSQL_DATABASE_CURSORCLASS'] = 'DictCursor'
 
 # init MYSQL
 mysql = MySQL(app)
-
+#mysql.init_app(app)
 
 
 def is_logged_in(f):
@@ -42,19 +42,19 @@ def quiene_somos():
 
 @app.route('/articles')
 def articles():
-    cur = mysql.connection.cursor()
+    cur = mysql.get_db().cursor()
     result = cur.execute("SELECT * FROM ARTICLES")
     articles = cur.fetchall()
     if result > 0:
         return render_template("articles.html", articles=articles)
     msg = 'No articles found'
-    return render_template('articles.html', articles=Articles, msg=msg)
+    return render_template('articles.html', articles=articles, msg=msg)
     cur.close()
 
 
 @app.route('/articles/<string:id>')
 def article(id):
-    cur = mysql.connection.cursor()
+    cur = mysql.get_db().cursor()
     cur.execute("SELECT * FROM ARTICLES WHERE id = %s", [id])
     art = cur.fetchone()
     cur.close()
@@ -79,7 +79,7 @@ def register():
         email = form.email.data
         username = form.username.data
         password = sha256_crypt.encrypt(str(form.password.data))
-        cur = mysql.connection.cursor()
+        cur = mysql.get_db().cursor()
         cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)",
                     (name, email, username, password))
 
@@ -98,7 +98,7 @@ def login():
         username = request.form['username']
         password_candidate = request.form['password']
 
-        cur = mysql.connection.cursor()
+        cur = mysql.get_db().cursor()
         result = cur.execute("SELECT * FROM users where username = %s", [username])
         if result > 0:
             data = cur.fetchone()
@@ -133,7 +133,7 @@ def logout():
 @app.route("/dashboard")
 @is_logged_in
 def dashboard():
-    cur = mysql.connection.cursor()
+    cur = mysql.get_db().cursor()
     result = cur.execute("SELECT * FROM ARTICLES")
     articles = cur.fetchall()
     if result > 0:
@@ -152,7 +152,7 @@ class ArticleForm(Form):
 @app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
 @is_logged_in
 def edit_article(id):
-    cur = mysql.connection.cursor()
+    cur = mysql.get_db().cursor()
     cur.execute("Select * from articles where id = %s", [id])
     article = cur.fetchone()
     form = ArticleForm(request.form)
@@ -175,7 +175,7 @@ def edit_article(id):
 @app.route("/delete_article/<string:id>", methods=['post'])
 @is_logged_in
 def delete_article(id):
-    cur = mysql.connection.cursor()
+    cur = mysql.get_db().cursor()
     cur.execute("delete from articles where id = %s", [id])
     mysql.connection.commit()
     cur.close()
@@ -190,7 +190,7 @@ def add_article():
         title = form.title.data
         body = form.body.data
 
-        cur = mysql.connection.cursor()
+        cur = mysql.get_db().cursor()
         author = session['username']
         cur.execute("INSERT INTO articles(title, body, author) VALUES(%s, %s, %s)",
                     (title, body, author))
