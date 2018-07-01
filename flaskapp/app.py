@@ -4,6 +4,7 @@ from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
 from pymysql.cursors import DictCursor
+import os
 
 app = Flask(__name__)
 
@@ -205,4 +206,5 @@ def add_article():
 
 if __name__ == '__main__':
     app.secret_key='secret123'
-    app.run(debug=True)
+    app.run(debug=True,host=os.getenv('IP', '0.0.0.0'),
+            port=int(os.getenv('PORT', 4444)))
