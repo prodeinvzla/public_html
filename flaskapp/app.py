@@ -42,7 +42,7 @@ class User(db.Model):
     email = db.Column(db.String(100))
     username = db.Column(db.String(100))
     password = db.Column(db.String(100))
-    #created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
 class Article(db.Model):
@@ -52,7 +52,7 @@ class Article(db.Model):
     title = db.Column(db.String(255))
     author = db.Column(db.String(100))
     body = db.Column(db.Text)
-    #created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
 
@@ -176,7 +176,7 @@ def login():
                 return render_template('login.html', error=error)
 
         elif len(result) > 1:
-            app.logger.info("Found more than 1 user: {}".format(result['name']))
+            app.logger.info("Found more than 1 user: {}".format([ x['username'] + " with name " + x['name'] for x in result ] ))
         else:
             error = 'User not found'
             app.logger.info(error)
