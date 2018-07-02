@@ -205,7 +205,7 @@ def logout():
 @is_logged_in
 def dashboard():
     try:
-        result = run_sql("SELECT * FROM ARTICLES")
+        result = run_sql("SELECT * FROM articles")
         if len(result) > 0:
             return render_template("dashboard.html", articles=result)
         else:
