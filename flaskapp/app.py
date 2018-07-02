@@ -23,7 +23,7 @@ SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostnam
     databasename="prodeinvzla$abcprode_principal",
 )
 
-if os.getenv('USERNAME') == 'prodeinvzla':
+if os.getenv('HOME') == '/home/prodeinvzla':
     dbtouse = SQLALCHEMY_DATABASE_URI
 else:
     dbtouse = localdb
