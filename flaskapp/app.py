@@ -42,7 +42,7 @@ class User(db.Model):
     email = db.Column(db.String(100))
     username = db.Column(db.String(100))
     password = db.Column(db.String(100))
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    #created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
 class Article(db.Model):
@@ -51,8 +51,8 @@ class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255))
     author = db.Column(db.String(100))
-    body = db.Column(db.Text())
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    body = db.Column(db.Text)
+    #created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
 
