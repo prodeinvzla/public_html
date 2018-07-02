@@ -1,0 +1,17 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+
+<h3>Registros</h3>
+<ul class="list-group">
+    {% for registro in registros %}
+    <li class="list-group-item">
+        <a href="registro/{{registro.cod_prodein}}">
+        {{registro.nombre}}
+        {{registro.apellido_1}}
+        </a> </li>
+    {% endfor %}
+    </ul>
+
+{% endblock %}
