@@ -1,10 +1,14 @@
-from flask import Flask, render_template, flash, redirect, url_for, session, logging, request
+from flask import Flask, render_template, flash, redirect, url_for, session, request
 import datetime
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
 import os
+
+import logging
+logging.basicConfig(filename='applog.log',level=logging.DEBUG)
+
 
 app = Flask(__name__)
 
@@ -97,11 +101,14 @@ def quiene_somos():
 
 @app.route('/articles')
 def articles():
-    articles = run_sql("SELECT * FROM ARTICLES")
-    if len(articles) > 0:
-        return render_template("articles.html", articles=articles)
-    msg = 'No articles found'
-    return render_template('articles.html', articles=articles, msg=msg)
+    try:
+        articles = run_sql("SELECT * FROM ARTICLES")
+        if len(articles) > 0:
+            return render_template("articles.html", articles=articles)
+        msg = 'No articles found'
+        return render_template('articles.html', articles=articles, msg=msg)
+    except Exception as e:
+        logging.info(e)
 
 
 @app.route('/articles/<string:id>')
