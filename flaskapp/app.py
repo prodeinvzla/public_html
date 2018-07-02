@@ -101,10 +101,11 @@ def quiene_somos():
 
 @app.route('/articles')
 def articles():
+    logging.info(os.getenv("USERNAME"))
     try:
         articles = run_sql("SELECT * FROM articles")
         logging.info(articles)
-        logging.info(os.getenv("USERNAME"))
+
         if len(articles) > 0:
             return render_template("articles.html", articles=articles)
         msg = 'No articles found'
