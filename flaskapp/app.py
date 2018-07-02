@@ -27,7 +27,7 @@ if os.getenv('HOME') == '/home/prodeinvzla':
     dbtouse = SQLALCHEMY_DATABASE_URI
 else:
     dbtouse = localdb
-
+app.config["SECRET_KEY"] = "secret123"
 app.config["SQLALCHEMY_DATABASE_URI"] = dbtouse # SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -252,6 +252,6 @@ def add_article():
 
 
 if __name__ == '__main__':
-    app.secret_key='secret123'
+    #app.secret_key='secret123'
     app.run(debug=True,host=os.getenv('IP', '0.0.0.0'),
             port=int(os.getenv('PORT', 4444)))
