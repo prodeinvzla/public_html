@@ -101,10 +101,8 @@ def quiene_somos():
 
 @app.route('/articles')
 def articles():
-    logging.info(os.environ.keys())
     try:
         articles = run_sql("SELECT * FROM articles")
-        logging.info(articles)
 
         if len(articles) > 0:
             return render_template("articles.html", articles=articles)
@@ -117,7 +115,7 @@ def articles():
 @app.route('/articles/<string:id>')
 def article(id):
     try:
-        result = run_sql("SELECT * FROM ARTICLES WHERE id = '{}'".format(id))
+        result = run_sql("SELECT * FROM articles WHERE id = '{}'".format(id))
         return render_template('article.html', article=result[0])
     except Exception as e:
         logging.info(e)
