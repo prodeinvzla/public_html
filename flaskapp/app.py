@@ -116,8 +116,11 @@ def articles():
 
 @app.route('/articles/<string:id>')
 def article(id):
-    result = run_sql("SELECT * FROM ARTICLES WHERE id = '{}'".format(id))
-    return render_template('article.html', article=result[0])
+    try:
+        result = run_sql("SELECT * FROM ARTICLES WHERE id = '{}'".format(id))
+        return render_template('article.html', article=result[0])
+    except Exception as e:
+        logging.info(e)
 
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
@@ -132,74 +135,87 @@ class RegisterForm(Form):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegisterForm(request.form)
-    if request.method == 'POST' and form.validate():
-        name = form.name.data
-        email = form.email.data
-        username = form.username.data
-        test = run_sql("select * from users where username = '{}'".format(username))
-        if len(test) > 1:
-            return render_template('register.html', form=form, error="Username taken")
-        password = sha256_crypt.encrypt(str(form.password.data))
+    try:
+        form = RegisterForm(request.form)
+        if request.method == 'POST' and form.validate():
+            name = form.name.data
+            email = form.email.data
+            username = form.username.data
+            test = run_sql("select * from users where username = '{}'".format(username))
+            if len(test) > 1:
+                return render_template('register.html', form=form, error="Username taken")
+            password = sha256_crypt.encrypt(str(form.password.data))
 
-        user = User(name=name, email=email, username=username, password=password)
-        db.session.add(user)
-        db.session.commit()
-        flash('You are now registered and can log in', 'success')
+            user = User(name=name, email=email, username=username, password=password)
+            db.session.add(user)
+            db.session.commit()
+            flash('You are now registered and can log in', 'success')
 
-        return redirect(url_for('articles'))
+            return redirect(url_for('articles'))
 
-    return render_template('register.html', form=form)
+        return render_template('register.html', form=form)
+
+    except Exception as e:
+        logging.info(e)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password_candidate = request.form['password']
+    try:
+        if request.method == 'POST':
+            username = request.form['username']
+            password_candidate = request.form['password']
 
-        result = run_sql("SELECT * FROM users where username = '{}'".format(username))
-        if len(result) == 1:
-            data = result[0]
-            password = data['password']
-            if sha256_crypt.verify(password_candidate, password):
-                app.logger.info('PASSWORD MATCH')
-                session['logged_in'] = True
-                session['username'] = username
+            result = run_sql("SELECT * FROM users where username = '{}'".format(username))
+            if len(result) == 1:
+                data = result[0]
+                password = data['password']
+                if sha256_crypt.verify(password_candidate, password):
+                    app.logger.info('PASSWORD MATCH')
+                    session['logged_in'] = True
+                    session['username'] = username
 
-                flash('You are now loggeado', 'success')
-                return redirect(url_for('dashboard'))
+                    flash('You are now loggeado', 'success')
+                    return redirect(url_for('dashboard'))
 
 
+                else:
+                    error = 'Invalid login'
+                    app.logger.info(error)
+                    return render_template('login.html', error=error)
+
+            elif len(result) > 1:
+                app.logger.info("Found more than 1 user: {}".format([ x['username'] + " with name " + x['name'] for x in result ] ))
             else:
-                error = 'Invalid login'
+                error = 'User not found'
                 app.logger.info(error)
                 return render_template('login.html', error=error)
-
-        elif len(result) > 1:
-            app.logger.info("Found more than 1 user: {}".format([ x['username'] + " with name " + x['name'] for x in result ] ))
-        else:
-            error = 'User not found'
-            app.logger.info(error)
-            return render_template('login.html', error=error)
-    return render_template('login.html')
+        return render_template('login.html')
+    except Exception as e:
+        logging.info(e)
 
 
 @app.route("/logout")
 def logout():
-    session.clear()
-    flash("Sesion terminada")
-    return redirect(url_for('login'))
+    try:
+        session.clear()
+        flash("Sesion terminada")
+        return redirect(url_for('login'))
+    except Exception as e:
+        logging.info(e)
 
 @app.route("/dashboard")
 @is_logged_in
 def dashboard():
-    result = run_sql("SELECT * FROM ARTICLES")
-    if len(result) > 0:
-        return render_template("dashboard.html", articles=result)
-    else:
-        msg = 'No articles found'
+    try:
+        result = run_sql("SELECT * FROM ARTICLES")
+        if len(result) > 0:
+            return render_template("dashboard.html", articles=result)
+        else:
+            msg = 'No articles found'
 
-        return render_template("dashboard.html", msg=msg)
+            return render_template("dashboard.html", msg=msg)
+    except Exception as e:
+        logging.info(e)
 
 class ArticleForm(Form):
     title = StringField('Title', [validators.Length(min=1, max=200)])
@@ -209,47 +225,54 @@ class ArticleForm(Form):
 @app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
 @is_logged_in
 def edit_article(id):
+    try:
+        result = run_sql("Select * from articles where id = '{}'".format(id))
+        form = ArticleForm(request.form)
 
-    result = run_sql("Select * from articles where id = '{}'".format(id))
-    form = ArticleForm(request.form)
+        form.title.data = result[0]['title']
+        form.body.data = result[0]['body']
 
-    form.title.data = result[0]['title']
-    form.body.data = result[0]['body']
+        if request.method == 'POST':
+            form.title.data = request.form['title']
+            form.body.data = request.form['body']
+            if form.validate():
+                run_sql("update articles set title='{}', body='{}' where id = '{}'".format(form.title.data,form.body.data,id), output=False)
 
-    if request.method == 'POST':
-        form.title.data = request.form['title']
-        form.body.data = request.form['body']
-        if form.validate():
-            run_sql("update articles set title='{}', body='{}' where id = '{}'".format(form.title.data,form.body.data,id), output=False)
+                flash('Article updated', 'success')
+                return redirect(url_for('dashboard'))
 
-            flash('Article updated', 'success')
-            return redirect(url_for('dashboard'))
-
-    return render_template('edit_article.html', form=form)
+        return render_template('edit_article.html', form=form)
+    except Exception as e:
+        logging.info(e)
 
 @app.route("/delete_article/<string:id>", methods=['post'])
 @is_logged_in
 def delete_article(id):
-    run_sql("delete from articles where id = '{}'".format(id), output=False)
-    flash('Article deleted', 'success')
-    return redirect(url_for('dashboard'))
+    try:
+        run_sql("delete from articles where id = '{}'".format(id), output=False)
+        flash('Article deleted', 'success')
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        logging.info(e)
 
 @app.route('/add_article', methods=['GET', 'POST'])
 @is_logged_in
 def add_article():
-    form = ArticleForm(request.form)
-    if request.method == 'POST' and form.validate():
-        title = form.title.data
-        body = form.body.data
-        author = session['username']
-        article = Article(title=title, author=author, body=body)
-        db.session.add(article)
-        db.session.commit()
-        flash('Article created', 'success')
-        return redirect(url_for('dashboard'))
+    try:
+        form = ArticleForm(request.form)
+        if request.method == 'POST' and form.validate():
+            title = form.title.data
+            body = form.body.data
+            author = session['username']
+            article = Article(title=title, author=author, body=body)
+            db.session.add(article)
+            db.session.commit()
+            flash('Article created', 'success')
+            return redirect(url_for('dashboard'))
 
-    return render_template('add_article.html', form=form)
-
+        return render_template('add_article.html', form=form)
+    except Exception as e:
+        logging.info(e)
 
 if __name__ == '__main__':
     #app.secret_key='secret123'
