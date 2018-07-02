@@ -101,7 +101,7 @@ def quiene_somos():
 
 @app.route('/articles')
 def articles():
-    logging.info(os.getenv("USERNAME"))
+    logging.info(os.environ.keys())
     try:
         articles = run_sql("SELECT * FROM articles")
         logging.info(articles)
