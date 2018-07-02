@@ -127,6 +127,9 @@ def register():
         name = form.name.data
         email = form.email.data
         username = form.username.data
+        test = run_sql("select * from users where username = '{}'".format(username))
+        if len(test) > 1:
+            return render_template('register.html', form=form, error="Username taken")
         password = sha256_crypt.encrypt(str(form.password.data))
 
         user = User(name=name, email=email, username=username, password=password)
