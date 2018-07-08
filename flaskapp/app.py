@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from flask import Flask, render_template, flash, redirect, url_for, session, request
 import datetime
 from flask_sqlalchemy import SQLAlchemy
@@ -350,5 +352,5 @@ def add_article():
 
 if __name__ == '__main__':
     #app.secret_key='secret123'
-    app.run(debug=True,host=os.getenv('IP', '0.0.0.0'),
-            port=80)
+    app.run(debug=True,host='0.0.0.0',
+            port=5000)
