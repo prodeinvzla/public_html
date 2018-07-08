@@ -351,4 +351,4 @@ def add_article():
 if __name__ == '__main__':
     #app.secret_key='secret123'
     app.run(debug=True,host=os.getenv('IP', '0.0.0.0'),
-            port=int(os.getenv('PORT', 4444)))
+            port=80)
