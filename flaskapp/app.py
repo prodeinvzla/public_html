@@ -7,8 +7,14 @@ from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from wtforms_alchemy import ModelForm
 from passlib.hash import sha256_crypt
 from functools import wraps
+from constants import (
+    formas_pago,
+    identificaciones,
+    titulos,
+    periodicidades
+)
 import os
-
+from collections import OrderedDict
 import logging
 logging.basicConfig(filename='applog.log',level=logging.DEBUG)
 
@@ -30,7 +36,8 @@ if os.getenv('HOME') == '/home/prodeinvzla':
     dbtouse = SQLALCHEMY_DATABASE_URI
 else:
     dbtouse = localdb
-app.config["SECRET_KEY"] = "secret123"
+
+app.config["SECRET_KEY"] = "FLASK_SCRT"
 app.config["SQLALCHEMY_DATABASE_URI"] = dbtouse # SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -45,16 +52,6 @@ class User(db.Model):
     email = db.Column(db.String(100))
     username = db.Column(db.String(100))
     password = db.Column(db.String(100))
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-
-class Article(db.Model):
-    __tablename__ = "articles"
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255))
-    author = db.Column(db.String(100))
-    body = db.Column(db.Text)
     created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 
@@ -95,11 +92,17 @@ class PrincipalForm(ModelForm):
 def run_sql(statement, output=True):
     cur = db.session.execute(statement)
     db.session.commit()
-    result = None
+
     if output:
         result = cur.fetchall()
+        try:
+            cols = OrderedDict(result[0].items()).keys()
+        except IndexError:
+            cur.close()
+    else:
+        return None, None
     cur.close()
-    return result
+    return result, cols
 
 
 def is_logged_in(f):
@@ -123,27 +126,99 @@ def index():
 #     return render_template('quienes_somos.html')
 
 
-@app.route('/ver_modificar_registro')
-def ver_modificar_registro():
-    try:
-        registros = run_sql("SELECT * FROM principal")
+@app.route('/registros', methods=['GET', 'POST'])
+def registros():
+    emptyform = PrincipalForm(request.form)
 
-        if len(registros) > 0:
-            return render_template("registros.html", registros=registros)
-        msg = 'No se encontraron registros'
-        return render_template('registros.html', registros=registros, msg=msg)
+    if request.method == 'POST':
+        form = request.form
+
+        whereclause = "WHERE "
+        for field in form:
+            if form[field] == '':
+                continue
+            if field not in ['nombre', 'apellido_1','apellido_2']:
+                continue
+                #write a function to format the data in each field to appropriate value for the update clause.
+            whereclause += field +"='"+str(form[field])+"' and "
+
+        query = "SELECT * FROM principal "
+        if whereclause[:-5] != '':
+            query += whereclause[:-5]
+        result, cols = run_sql(query)
+        output = result if result else []
+
+        return render_template("registros.html", registros=output, form=emptyform)
+
+    elif request.method == 'GET':
+
+        registros, cols = run_sql("SELECT * FROM principal")
+
+       #if len(registros) > 0:
+        return render_template("registros.html", registros=registros, form=emptyform)
+        # else:
+        #     msg = 'No se encontraron registros'
+        #     return render_template('panel_de_control.html', usuarios=len(registros), msg=msg)
+    # except Exception as e:
+    #     logging.info(e)
+
+
+@app.route('/registros/<string:id>')
+def registro(id):
+    try:
+        result, cols = run_sql("SELECT * FROM principal WHERE cod_prodein = '{}'".format(id))
+        return render_template('registro.html', cols=cols, registro=result[0])
     except Exception as e:
         logging.info(e)
 
 
-# @app.route('/articles/<string:id>')
-# def article(id):
-#     try:
-#         result = run_sql("SELECT * FROM articles WHERE id = '{}'".format(id))
-#         return render_template('article.html', article=result[0])
-#     except Exception as e:
-#         logging.info(e)
-#
+@app.route('/registros/<string:id>/modificar', methods=['GET','POST'])
+def modificar_registro(id):
+    form = PrincipalForm(request.form)
+
+    if request.method == 'GET':
+        result, cols = run_sql("SELECT * FROM principal WHERE cod_prodein = '{}'".format(id))
+        ids = [x.keys()[0] for x in identificaciones]
+        for field in form:
+            field.data = result[0][field.name]
+        #result, cols = run_sql("SELECT * FROM principal WHERE cod_prodein = '{}'".format(id))
+
+        try:
+            return render_template('agregar_registro.html', form=form, titulos=titulos, periodicidades=periodicidades,
+                                   identificaciones=ids, formas_pago=formas_pago)
+        except Exception as e:
+            logging.info(e)
+    elif request.method == 'POST':
+        titulo = request.form['t_titulo']
+        tipo_id = request.form['t_id']
+        strset = ""
+        if titulo != '':
+            strset += "titulo='" + titulo + "', "
+        if tipo_id != '':
+            strset += "tipo_id='" + tipo_id + "', "
+        for field in form:
+            print field.data
+            if field.data == '':
+                continue
+            if field.name == 'direccion':
+                continue
+                #write a function to format the data in each field to appropriate value for the update clause.
+            field_data = field.data if field.type != 'BooleanField' else int(field.data)
+
+            strset += field.name+"='"+str(field_data)+"', "
+
+
+        query = "UPDATE principal SET " + strset[:-2] + " WHERE cod_prodein=" + id
+        print query
+        run_sql(query, output=False)
+        flash("Registro actualizado", 'success')
+        return redirect(url_for('registros'))
+    else:
+        pass
+
+
+
+
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
     username = StringField('Username', [validators.Length(min=4, max=25)])
@@ -158,6 +233,7 @@ class RegisterForm(Form):
 @app.route('/agregar_registro', methods=['GET', 'POST'])
 @is_logged_in
 def agregar_registro():
+    ids = [x.keys()[0] for x in identificaciones]
     try:
         form = PrincipalForm(request.form)
 
@@ -169,7 +245,7 @@ def agregar_registro():
             apellido_1 = form.apellido_1.data
             apellido_2 = form.apellido_2.data
             identificacion = form.identificacion.data
-            tipo_id = form.tipo_id.data
+            tipo_id = request.values.get("t_id","")
             telf_1 = form.telf_1.data
             telf_2 = form.telf_2.data
             telf_cel = form.telf_cel.data
@@ -202,23 +278,22 @@ def agregar_registro():
             flash('Registro creado', 'success')
 
             return redirect(url_for('panel_de_control'))
-        return render_template('agregar_registro.html', form=form)
+        return render_template('agregar_registro.html', form=form, titulos=titulos, periodicidades=periodicidades,
+                               identificaciones=ids, formas_pago=formas_pago)
 
     except Exception as e:
         logging.info(e)
 
 
-
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
+@app.route('/registro_usuarios', methods=['GET', 'POST'])
+def register_user():
     try:
         form = RegisterForm(request.form)
         if request.method == 'POST' and form.validate():
             name = form.name.data
             email = form.email.data
             username = form.username.data
-            test = run_sql("select * from users where username = '{}'".format(username))
+            test, cols = run_sql("select * from users where username = '{}'".format(username))
             if len(test) > 1:
                 return render_template('register.html', form=form, error="Username taken")
             password = sha256_crypt.encrypt(str(form.password.data))
@@ -242,7 +317,7 @@ def login():
             username = request.form['username']
             password_candidate = request.form['password']
 
-            result = run_sql("SELECT * FROM users where username = '{}'".format(username))
+            result, cols = run_sql("SELECT * FROM users where username = '{}'".format(username))
             if len(result) == 1:
                 data = result[0]
                 password = data['password']
@@ -284,7 +359,7 @@ def salir():
 @is_logged_in
 def panel_de_control():
     try:
-        result = run_sql("SELECT * FROM principal")
+        result, cols = run_sql("SELECT * FROM principal")
         #if len(result) > 0:
         return render_template("panel_de_control.html", usuarios=len(result), registros=result)
         # else:
@@ -293,64 +368,8 @@ def panel_de_control():
     except Exception as e:
         logging.info(e)
 
-# class ArticleForm(Form):
-#     title = StringField('Title', [validators.Length(min=1, max=200)])
-#     body = TextAreaField('Body', [validators.Length(min=30)])
 
-
-@app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
-@is_logged_in
-def edit_article(id):
-    try:
-        result = run_sql("Select * from articles where id = '{}'".format(id))
-        form = ArticleForm(request.form)
-
-        form.title.data = result[0]['title']
-        form.body.data = result[0]['body']
-
-        if request.method == 'POST':
-            form.title.data = request.form['title']
-            form.body.data = request.form['body']
-            if form.validate():
-                run_sql("update articles set title='{}', body='{}' where id = '{}'".format(form.title.data,form.body.data,id), output=False)
-
-                flash('Article updated', 'success')
-                return redirect(url_for('dashboard'))
-
-        return render_template('edit_article.html', form=form)
-    except Exception as e:
-        logging.info(e)
-
-@app.route("/delete_article/<string:id>", methods=['post'])
-@is_logged_in
-def delete_article(id):
-    try:
-        run_sql("delete from articles where id = '{}'".format(id), output=False)
-        flash('Article deleted', 'success')
-        return redirect(url_for('dashboard'))
-    except Exception as e:
-        logging.info(e)
-
-@app.route('/add_article', methods=['GET', 'POST'])
-@is_logged_in
-def add_article():
-    try:
-        form = ArticleForm(request.form)
-        if request.method == 'POST' and form.validate():
-            title = form.title.data
-            body = form.body.data
-            author = session['username']
-            article = Article(title=title, author=author, body=body)
-            db.session.add(article)
-            db.session.commit()
-            flash('Article created', 'success')
-            return redirect(url_for('dashboard'))
-
-        return render_template('add_article.html', form=form)
-    except Exception as e:
-        logging.info(e)
 
 if __name__ == '__main__':
-    #app.secret_key='secret123'
     app.run(debug=True,host='0.0.0.0',
-            port=5000)
+            port=5050)

@@ -1,16 +1,37 @@
 {% extends 'layout.html' %}
+{% from 'includes/_formhelpers.html' import render_field %}
 
 {% block body %}
 
+<h3>Busqueda</h3>
+
+<form action="/registros" method="post">
+ {{ render_field(form.nombre) }}
+         {{ render_field(form.apellido_1) }}
+         {{ render_field(form.apellido_2) }}
+  <button type="submit" class="btn btn-default">Buscar</button>
+
+</form>
 
 <h3>Registros</h3>
 <ul class="list-group">
     {% for registro in registros %}
     <li class="list-group-item">
-        <a href="registro/{{registro.cod_prodein}}">
-        {{registro.nombre}}
+       <b>Cod.  {{registro.cod_prodein}}</b>
+
+
+        {{registro.titulo}}
+            {{registro.nombre}}
         {{registro.apellido_1}}
-        </a> </li>
+        {{registro.apellido_2}}
+
+
+
+
+            {{registro.tipo_id}}-{{registro.identificacion}}
+
+        <a href="registros/{{registro.cod_prodein}}" class="btn btn-default pull-right">Ver/Modificar</a>
+         </li>
     {% endfor %}
     </ul>
 

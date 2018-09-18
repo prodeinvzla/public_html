@@ -1,26 +1,61 @@
 {% extends 'layout.html' %}
 {% block body %}
-<h1>Agregar Registro</h1>
+<h1>Agregar/Modificar Registro</h1>
 {% from 'includes/_formhelpers.html' import render_field %}
 <form method="POST" action="">
-    <div class="form-group">
-        {{ render_field(form.titulo, class_="form-control") }}
-         {{ render_field(form.nombre, class_="form-control") }}
-         {{ render_field(form.apellido_1, class_="form-control") }}
-         {{ render_field(form.apellido_2, class_="form-control") }}
-         {{ render_field(form.identificacion, class_="form-control") }}
-         {{ render_field(form.tipo_id, class_="form-control") }}
-         {{ render_field(form.telf_1, class_="form-control") }}
-         {{ render_field(form.telf_2, class_="form-control") }}
-         {{ render_field(form.telf_cel, class_="form-control") }}
-         {{ render_field(form.email, class_="form-control") }}
-          {{ render_field(form.estado, class_="form-control") }}
-          {{ render_field(form.municipio, class_="form-control") }}
 
+    <div class="form-inline">
+
+    <b>titulo</b>
+        <select id="t_titulo" name="t_titulo">
+        {% for each in titulos %}
+            {% if each == form.titulo.label.text %}
+            <option value="{{each}}" selected="selected">{{each}}</option>
+            {% else %}
+            <option value="{{each}}">{{each}}</option>
+            {% endif %}
+
+        {% endfor %}
+        </select>
+         {{ render_field(form.nombre) }}
+         {{ render_field(form.apellido_1) }}
+         {{ render_field(form.apellido_2) }}
     </div>
+    <div class="form-group">
+
+
+        <b>identificacion</b>
+        <select id="t_id" name="t_id">
+        {% for each in identificaciones %}
+         <option value="{{each}}">{{each}}</option>
+        {% endfor %}
+        </select>
+        {{ render_field(form.identificacion) }}
+    </div>
+    <div class="form-group">
+         {{ render_field(form.telf_1) }}
+         {{ render_field(form.telf_2) }}
+         {{ render_field(form.telf_cel) }}
+        </div>
+
+    <div class="form-group">
+         {{ render_field(form.email) }}
+          {{ render_field(form.estado) }}
+          {{ render_field(form.municipio) }}
+    </div>
+    <div class="form-check">
+        {{ render_field(form.voluntario, class_="form-check") }}
+        {{ render_field(form.adorador, class_="form-check") }}
+        {{ render_field(form.sociocolaborador, class_="form-check") }}
+        {{ render_field(form.dama_prodein, class_="form-check") }}
+        {{ render_field(form.activo, class_="form-check") }}
+           {{ render_field(form.ejercitante) }}
+</div>
+
+
     <div class="form-group">
         {{ render_field(form.direccion, class_="form-control", id="editor") }}
     </div>
-    <p><input class="btn btn-primary" type="submit" value="Registrar"></p>
+    <p><input class="btn btn-primary" type="submit" value="Guardar Cambios"></p>
 </form>
 {% endblock %}
