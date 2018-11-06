@@ -3,6 +3,8 @@
 
 from flask import Flask, render_template, flash, redirect, url_for, session, request
 from flask_sqlalchemy import SQLAlchemy
+from models import db
+import models
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from forms import DonacionPeriodicaForm, PrincipalForm
 from passlib.hash import sha256_crypt
@@ -16,13 +18,14 @@ from constants import (
 import os
 from collections import OrderedDict
 import logging
+
 logging.basicConfig(filename='applog.log',level=logging.DEBUG)
-from db import init_db
+#from db import init_db
 from constants import external_db, local_db
 
-init_db()
+#init_db()
 
-import models
+
 # Config MySQL
 
 app = Flask(__name__)
@@ -38,7 +41,7 @@ app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 #app.config['TRAP_HTTP_EXCEPTIONS'] = True
 
-db = SQLAlchemy(app)
+db.init_app(app)
 
 
 def run_sql(statement, output=True):
