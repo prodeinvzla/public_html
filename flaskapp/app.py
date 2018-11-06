@@ -5,7 +5,6 @@ from flask import Flask, render_template, flash, redirect, url_for, session, req
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from forms import DonacionPeriodicaForm, PrincipalForm
-import models
 from passlib.hash import sha256_crypt
 from functools import wraps
 from constants import (
@@ -23,6 +22,7 @@ from constants import external_db, local_db
 
 init_db()
 
+import models
 # Config MySQL
 
 app = Flask(__name__)
