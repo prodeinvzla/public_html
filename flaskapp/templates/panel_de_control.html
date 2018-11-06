@@ -2,13 +2,33 @@
 
 {% block body %}
     <h1>Panel de Control <small>Bienvenido(a) {{session.username}}</small></h1>
+<h3>Registro Personas</h3>
     <a class="btn btn-success" href="/agregar_registro"> Agregar Registro </a>
     <a class="btn btn-success" href="/registros"> Ver/Modificar Registros </a>
 <hr> <table class="table table-striped">
     <tr>
-        <th>Total registros: {{usuarios}}</th>
+        <th>Total registros: {{personas}}</th>
 
     </tr>
+</table>
+    <h3>Registro Donaciones periodicas</h3>
+    <a class="btn btn-success" href="/agregar_donacion_periodica"> Agregar Registro </a>
+    <a class="btn btn-success" href="/registros_donacion_periodica"> Ver/Modificar Registros </a>
+<hr> <table class="table table-striped">
+    <tr>
+        <th>Total registros: {{don_rec}}</th>
+
+    </tr>
+</table>
+      <h3>Registro Donaciones Efectuadas</h3>
+    <a class="btn btn-success" href="/agregar_donacion"> Agregar Registro </a>
+    <a class="btn btn-success" href="/registros_donacion"> Ver/Modificar Registros </a>
+<hr> <table class="table table-striped">
+    <tr>
+        <th>Total registros: {{donaciones}}</th>
+
+    </tr>
+    </table>
     <!--{% for article in articles %}-->
     <!--<tr>-->
         <!--<td>{{article.id}}</td>-->
@@ -25,6 +45,6 @@
     <!--</form></td>-->
     <!--</tr>-->
     <!--{% endfor %}-->
-</table>
+
 
 {% endblock %}

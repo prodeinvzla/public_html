@@ -1,7 +1,5 @@
 {% macro render_field(field) %}
- {% if field.label.text != "titulo" and field.label.text != "identificacion" %}
   {{ field.label }}
- {% endif %}
   {{ field(**kwargs)|safe }}
   {% if field.errors %}
     {% for error in field.errors %}

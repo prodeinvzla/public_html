@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+{% from 'includes/_formhelpers.html' import render_field %}
+
+{% block body %}
+
+<h3>Busqueda</h3>
+
+<form action="/registros_donacion_periodica" method="post">
+
+         {{ render_field(form.periodicidad) }}
+         {{ render_field(form.concepto) }}
+  <button type="submit" class="btn btn-default">Buscar</button>
+
+</form>
+
+<h3>Registros</h3>
+<ul class="list-group">
+    {% for registro in registros %}
+    <li class="list-group-item">
+       <b>Cod.  {{registro.cod_prodein}}</b>
+
+
+        {{registro.cod_prodein}}
+            {{registro.periodicidad}}
+        {{registro.concepto}}
+
+
+
+        <a href="registros_donacion_periodica/{{registro.cod_prodein}}" class="btn btn-default pull-right">Ver/Modificar</a>
+         </li>
+    {% endfor %}
+    </ul>
+
+{% endblock %}

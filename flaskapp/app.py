@@ -1,10 +1,12 @@
 #!/usr/bin/python
 
+
 from flask import Flask, render_template, flash, redirect, url_for, session, request
-import datetime
+from models import *
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from wtforms_alchemy import ModelForm
+from forms import DonacionPeriodicaForm, PrincipalForm
+import models
 from passlib.hash import sha256_crypt
 from functools import wraps
 from constants import (
@@ -17,90 +19,40 @@ import os
 from collections import OrderedDict
 import logging
 logging.basicConfig(filename='applog.log',level=logging.DEBUG)
+from db import init_db
+from constants import external_db, local_db
 
+init_db()
 
 # Config MySQL
 
 app = Flask(__name__)
 
-dbtouse = None
-localdb = "mysql+pymysql://abcprode_admin:lockboxes11@localhost/abcprode_principal"
-SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
-    username="prodeinvzla",
-    password="lockboxes11",
-    hostname="prodeinvzla.mysql.pythonanywhere-services.com",
-    databasename="prodeinvzla$abcprode_principal",
-)
-
 if os.getenv('HOME') == '/home/prodeinvzla':
-    dbtouse = SQLALCHEMY_DATABASE_URI
+    dbtouse = external_db
 else:
-    dbtouse = localdb
+    dbtouse = local_db
 
 app.config["SECRET_KEY"] = "FLASK_SCRT"
 app.config["SQLALCHEMY_DATABASE_URI"] = dbtouse # SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+#app.config['TRAP_HTTP_EXCEPTIONS'] = True
 
 db = SQLAlchemy(app)
 
-class User(db.Model):
-    __tablename__ = "users"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    email = db.Column(db.String(100))
-    username = db.Column(db.String(100))
-    password = db.Column(db.String(100))
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-
-
-class Principal(db.Model):
-    __tablename__ = "principal"
-
-    cod_prodein = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(100))
-    nombre = db.Column(db.String(100))
-    apellido_1 = db.Column(db.String(100))
-    apellido_2 = db.Column(db.String(100))
-    identificacion = db.Column(db.String(100))
-    tipo_id = db.Column(db.String(100))
-    telf_1 = db.Column(db.String(20))
-    telf_2 = db.Column(db.String(20))
-    telf_cel = db.Column(db.String(20))
-    vinculo = db.Column(db.String(100))
-    email = db.Column(db.String(100))
-    fecha_alta = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    fecha_modificacion = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    fecha_baja = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    direccion = db.Column(db.Text)
-    estado = db.Column(db.String(100))
-    municipio = db.Column(db.String(100))
-
-    # bools
-    voluntario = db.Column(db.Boolean, default=False)
-    adorador = db.Column(db.Boolean, default=False)
-    sociocolaborador = db.Column(db.Boolean, default=False)
-    dama_prodein = db.Column(db.Boolean, default=False)
-    activo = db.Column(db.Boolean, default=False)
-    ejercitante = db.Column(db.Boolean, default=False)
-
-class PrincipalForm(ModelForm):
-    class Meta:
-        model = Principal
 
 def run_sql(statement, output=True):
     cur = db.session.execute(statement)
     db.session.commit()
-
+    result = 'empty_result'
+    cols = ['empty_cols']
     if output:
         result = cur.fetchall()
         try:
             cols = OrderedDict(result[0].items()).keys()
         except IndexError:
-            cur.close()
-    else:
-        return None, None
+            pass
     cur.close()
     return result, cols
 
@@ -121,9 +73,6 @@ def index():
     return render_template('inicio.html')
 
 
-# @app.route('/quienes_somos')
-# def quiene_somos():
-#     return render_template('quienes_somos.html')
 
 
 @app.route('/registros', methods=['GET', 'POST'])
@@ -147,20 +96,11 @@ def registros():
             query += whereclause[:-5]
         result, cols = run_sql(query)
         output = result if result else []
-
         return render_template("registros.html", registros=output, form=emptyform)
 
     elif request.method == 'GET':
-
         registros, cols = run_sql("SELECT * FROM principal")
-
-       #if len(registros) > 0:
         return render_template("registros.html", registros=registros, form=emptyform)
-        # else:
-        #     msg = 'No se encontraron registros'
-        #     return render_template('panel_de_control.html', usuarios=len(registros), msg=msg)
-    # except Exception as e:
-    #     logging.info(e)
 
 
 @app.route('/registros/<string:id>')
@@ -168,6 +108,40 @@ def registro(id):
     try:
         result, cols = run_sql("SELECT * FROM principal WHERE cod_prodein = '{}'".format(id))
         return render_template('registro.html', cols=cols, registro=result[0])
+    except Exception as e:
+        logging.info(e)
+
+@app.route('/registros_donacion_periodica', methods=['GET', 'POST'])
+def registros_don_rec():
+    emptyform = DonacionPeriodicaForm(request.form)
+
+    if request.method == 'POST':
+        form = request.form
+
+        whereclause = "WHERE "
+        for field in form:
+            if form[field] == '' or field not in ['cod_prodein', 'periodicidad', 'concepto']:
+                continue
+                #write a function to format the data in each field to appropriate value for the update clause.
+            whereclause += field +"='"+str(form[field])+"' and "
+
+        query = "SELECT * FROM donacion_periodica "
+        if whereclause[:-5] != '':
+            query += whereclause[:-5]
+        result, cols = run_sql(query)
+        output = result if result else []
+        return render_template("registros_donacion_periodica.html", registros=output, form=emptyform)
+
+    elif request.method == 'GET':
+        registros, cols = run_sql("SELECT * FROM donacion_periodica")
+        return render_template("registros_donacion_periodica.html", registros=registros, form=emptyform)
+
+
+@app.route('/registros_donacion_periodica/<string:id>')
+def registro_don_rec(id):
+    try:
+        result, cols = run_sql("SELECT * FROM donacion_periodica WHERE cod_prodein = '{}'".format(id))
+        return render_template('registro_donacion_periodica.html', cols=cols, registro=result[0])
     except Exception as e:
         logging.info(e)
 
@@ -189,34 +163,38 @@ def modificar_registro(id):
         except Exception as e:
             logging.info(e)
     elif request.method == 'POST':
-        titulo = request.form['t_titulo']
-        tipo_id = request.form['t_id']
-        strset = ""
-        if titulo != '':
-            strset += "titulo='" + titulo + "', "
-        if tipo_id != '':
-            strset += "tipo_id='" + tipo_id + "', "
-        for field in form:
-            print field.data
-            if field.data == '':
-                continue
-            if field.name == 'direccion':
-                continue
-                #write a function to format the data in each field to appropriate value for the update clause.
-            field_data = field.data if field.type != 'BooleanField' else int(field.data)
+        print request.form
+        entry = db.session.query(models.Principal).filter_by(cod_prodein=id).first()
 
-            strset += field.name+"='"+str(field_data)+"', "
+        entry.titulo = request.form['titulo']
+        entry.nombre = request.form['nombre']
+        entry.apellido_1 = request.form['apellido_1']
+        entry.apellido_2 = request.form['apellido_2']
+        entry.identificaion = request.form['identificacion']
+        entry.tipo_id = request.form['tipo_id']
+        entry.telf_1 = request.form['telf_1']
+        entry.telf_2 = request.form['telf_2']
+        entry.telf_cel = request.form['telf_cel']
+        #entry.vinculo = request.form['vinculo']
+        entry.email = request.form['email']
 
+        entry.direccion = request.form['direccion']
+        entry.estado = request.form['estado']
+        entry.ciudad = request.form['ciudad']
+        entry.municipio = request.form['municipio']
+        # entry.voluntario = request.form['voluntario']
+        # entry.adorador = request.form['adorador']
+        # entry.sociocolaborador = request.form['sociocolaborador']
+        # entry.dama_prodein = request.form['dama_prodein']
+        # entry.activo = request.form['activo']
+        # entry.ejercitante = request.form['ejercitante']
 
-        query = "UPDATE principal SET " + strset[:-2] + " WHERE cod_prodein=" + id
-        print query
-        run_sql(query, output=False)
+        db.session.commit()
+
         flash("Registro actualizado", 'success')
         return redirect(url_for('registros'))
     else:
         pass
-
-
 
 
 class RegisterForm(Form):
@@ -238,8 +216,6 @@ def agregar_registro():
         form = PrincipalForm(request.form)
 
         if request.method == 'POST' and form.validate():
-
-            #cod_prodein = form.cod_prodein.data
             titulo = form.titulo.data
             nombre = form.nombre.data
             apellido_1 = form.apellido_1.data
@@ -251,11 +227,9 @@ def agregar_registro():
             telf_cel = form.telf_cel.data
             vinculo = form.vinculo.data
             email = form.email.data
-            # fecha_alta = form.fecha_alta.data
-            # fecha_modificacion = form.fecha_modificacion.data
-            # fecha_baja = form.fecha_baja.data
             direccion = form.direccion.data
             estado = form.estado.data
+            ciudad = form.ciudad.data
             municipio = form.municipio.data
 
             #bools
@@ -266,10 +240,10 @@ def agregar_registro():
             activo = form.activo.data
             ejercitante = form.ejercitante.data
 
-            principal = Principal(titulo=titulo, nombre=nombre, apellido_1=apellido_1,
+            principal = models.Principal(titulo=titulo, nombre=nombre, apellido_1=apellido_1,
                                   apellido_2=apellido_2, identificacion=identificacion, tipo_id=tipo_id, telf_1=telf_1,
                                   telf_2=telf_2, telf_cel=telf_cel, vinculo=vinculo, email=email, direccion=direccion,
-                                  estado=estado, municipio=municipio, voluntario=voluntario, adorador=adorador,
+                                  estado=estado, ciudad=ciudad, municipio=municipio, voluntario=voluntario, adorador=adorador,
                                   sociocolaborador=sociocolaborador, dama_prodein=dama_prodein, activo=activo, ejercitante=ejercitante)
 
 
@@ -280,6 +254,55 @@ def agregar_registro():
             return redirect(url_for('panel_de_control'))
         return render_template('agregar_registro.html', form=form, titulos=titulos, periodicidades=periodicidades,
                                identificaciones=ids, formas_pago=formas_pago)
+
+    except Exception as e:
+        logging.info(e)
+
+
+@app.route('/agregar_donacion_periodica', methods=['GET', 'POST'])
+@is_logged_in
+def agregar_donacion_periodica():
+    #ids = [x.keys()[0] for x in identificaciones]
+    try:
+        form = DonacionPeriodicaForm(request.form)
+
+        if request.method == 'POST' and form.validate():
+
+            cod_prodein = form.cod_prodein.data
+            periodicidad = form.periodicidad.data
+            concepto = form.concepto.data
+            importe = form.importe.data
+            forma_pago = form.forma_pago.data
+            banco = form.banco.data
+            numero_cuenta = form.numero_cuenta.data
+            vencimiento = form.vencimiento.data
+            tipo_moneda = form.tipo_moneda.data
+            activo = form.activo.data
+
+            donacion_periodica = models.DonacionPeriodica(cod_prodein=cod_prodein,
+                                                    periodicidad=periodicidad,
+                                                    concepto=concepto,
+                                                    importe=importe,
+                                                    forma_pago=forma_pago,
+                                                    banco=banco,
+                                                    numero_cuenta=numero_cuenta,
+                                                    vencimiento=vencimiento,
+                                                    tipo_moneda=tipo_moneda,
+                                                    activo=activo,
+
+                                                    )
+            db.session.add(donacion_periodica)
+            db.session.commit()
+            flash('Registro creado', 'success')
+
+            return redirect(url_for('panel_de_control'))
+
+        #return render_template("hello.html")
+        logging.info("got here")
+        return render_template('agregar_donacion_periodica.html',
+                               form=form,
+                               periodicidades=periodicidades,
+                               formas_pago=formas_pago)
 
     except Exception as e:
         logging.info(e)
@@ -359,12 +382,17 @@ def salir():
 @is_logged_in
 def panel_de_control():
     try:
-        result, cols = run_sql("SELECT * FROM principal")
+        personas, cols = run_sql("SELECT * FROM principal")
+        don_rec, cols = run_sql("SELECT * FROM donacion_periodica")
+        donaciones, cols = run_sql("SELECT * FROM donacion")
+
+
         #if len(result) > 0:
-        return render_template("panel_de_control.html", usuarios=len(result), registros=result)
-        # else:
-        #     msg = 'No hay registros'
-        #     return render_template("panel_de_control.html", msg=msg)
+        return render_template("panel_de_control.html",
+                               personas=len(personas),
+                               don_rec=len(don_rec),
+                               donaciones=len(donaciones)
+                               )
     except Exception as e:
         logging.info(e)
 
