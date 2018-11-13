@@ -2,13 +2,15 @@
 {% from 'includes/_formhelpers.html' import render_field %}
 
 {% block body %}
-
+<h2>Donaciones Periodicas</h2>
 <h3>Busqueda</h3>
 
 <form action="/registros_donacion_periodica" method="post">
         {{ render_field(form.cod_prodein) }}
-         {{ render_field(form.periodicidad) }}
-         {{ render_field(form.concepto) }}
+        {{ render_field(form.concepto) }}
+        {{ render_field(form.forma_pago) }}
+         {{ render_field(form.importe) }}
+
   <button type="submit" class="btn btn-default">Buscar</button>
 
 </form>
@@ -17,13 +19,12 @@
 <ul class="list-group">
     {% for registro in registros %}
     <li class="list-group-item">
-        <b>Registro N.  {{registro.id}}</b>
-       <b>Cod PRODEIN.  {{registro.cod_prodein}}</b>
-
-
-
-            {{registro.periodicidad}}
-        {{registro.concepto}}
+        <b>Registro N.</b>  {{registro.id}}
+       <b>Cod PRODEIN </b> {{registro.cod_prodein}}
+           <b>Concepto</b>  {{registro.concepto}}
+        <b>Periodicidad</b>  {{registro.periodicidad}}
+        <b>Forma de Pago</b>  {{registro.forma_pago}}
+        <b>Importe.</b>  {{registro.importe}}
 
 
 

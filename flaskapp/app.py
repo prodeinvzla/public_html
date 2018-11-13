@@ -176,8 +176,12 @@ def registros_don_rec():
 
         entries = db.session.query(DonacionPeriodica)
 
-        if form['periodicidad']:
-            entries = entries.filter(DonacionPeriodica.periodicidad.like(form['periodicidad']))
+        # if form['periodicidad']:
+        #     entries = entries.filter(DonacionPeriodica.periodicidad.like(form['periodicidad']))
+        if form['forma_pago']:
+            entries = entries.filter(DonacionPeriodica.forma_pago.like(form['forma_pago']))
+        if form['importe']:
+            entries = entries.filter(DonacionPeriodica.importe.like(form['importe']))
         if form['concepto']:
             entries = entries.filter(DonacionPeriodica.concepto.like(form['concepto']))
         if form['cod_prodein']:
