@@ -1,7 +1,17 @@
 #from wtforms_alchemy import ModelForm
 #from models import Principal, DonacionPeriodica, Donacion
-from wtforms import Form, StringField, SelectField, DecimalField, IntegerField, DateField, BooleanField, TextAreaField
-# from wtforms_alchemy import  ModelForm
+from wtforms import (
+    Form,
+    StringField,
+    SelectField,
+    DecimalField,
+    IntegerField,
+    DateField,
+    BooleanField,
+    TextAreaField,
+    PasswordField,
+    validators
+    )
 from constants import periodicidades, formas_pago, titulos, identificaciones, estados
 from municipios import MUNICIPIOS
 from ciudades import CIUDADES
@@ -51,8 +61,8 @@ class DonacionPeriodicaForm(Form):
     importe = DecimalField('Importe')
     forma_pago = SelectField('Forma Pago', choices=[ (fp, fp) for fp in formas_pago ])
     banco = StringField('Banco')
-    numero_cuenta = IntegerField('Numero Cuenta')
-    vencimiento = DateField('Vencimiento')
+    numero_cuenta = IntegerField('Numero Cuenta', [validators.optional()])
+    vencimiento = DateField('Vencimiento', [validators.optional()])
     busqueda = StringField("Busqueda")
     tipo_moneda = StringField('Tipo Moneda')
     activo = BooleanField(default='activo')
@@ -64,7 +74,21 @@ class DonacionPeriodicaForm(Form):
     # class Meta:
     #     model = DonacionPeriodica
 
-#
-# class DonacionForm(ModelForm):
-#     class Meta:
-#         model = Donacion
+
+class DonacionForm(Form):
+    cod_prodein = IntegerField('cod_prodein')
+    concepto = StringField('Concepto')
+    importe = DecimalField('Importe')
+    forma_pago = SelectField('Forma Pago', choices=[(fp, fp) for fp in formas_pago])
+    busqueda = StringField("Busqueda")
+
+
+class RegisterForm(Form):
+    name = StringField('Name', [validators.Length(min=1, max=50)])
+    username = StringField('Username', [validators.Length(min=4, max=25)])
+    email = StringField('Email', [validators.Length(min=6, max=50)])
+    password = PasswordField('Password', [
+        validators.DataRequired(),
+        validators.EqualTo('confirm', message='Passwords do not match')
+    ])
+    confirm = PasswordField('Confirm Password')

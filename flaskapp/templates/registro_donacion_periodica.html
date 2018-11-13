@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+
+{% from 'includes/_formhelpers.html' import render_field %}
+
+{% block body %}
+
+<ul class="list-unstyled">
+    <b>Cod</b> {{ registro.cod_prodein }} <br>
+    <b>Periodicidad</b>  {{ registro.periodicidad }} <br>
+    <b>Concepto</b>    {{ registro.concepto }} <br>
+    <b>Forma de Pago </b>   {{ registro.forma_pago }} <br>
+      <b>Tipo Moneda </b>   {{ registro.tipo_moneda }} <br>
+    <b>Importe </b>   {{ registro.importe }} <br>
+    <b>Banco </b>   {{ registro.banco }} <br>
+    <b>N. Cta. </b>   {{ registro.numero_cuenta }} <br>
+     <b>Vencimiento </b>   {{ registro.vencimiento }} <br>
+    <b>Fecha Alta </b>   {{ registro.fecha_alta }} <br>
+    <b>Fecha Modificacion </b>   {{ registro.fecha_modificacion }} <br>
+    <b>Fecha Baja </b>   {{ registro.fecha_baja }} <br>
+    <b>Activo </b>   {{ registro.activo }} <br>
+
+</ul>
+
+
+  <div>
+       <a href="../registros_donacion_periodica/{{registro.id}}/modificar" class="btn btn-default pull-right">Modificar</a>
+    <a href="../registros_donacion_periodica" class="btn btn-default pull-right">Regresar</a>
+
+  </div>
+{% endblock %}

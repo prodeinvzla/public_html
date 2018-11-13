@@ -5,10 +5,13 @@
 
 <h3>Busqueda</h3>
 
-<form action="/registros_donacion_periodica" method="post">
+<form action="/registros_donacion" method="post">
         {{ render_field(form.cod_prodein) }}
-         {{ render_field(form.periodicidad) }}
          {{ render_field(form.concepto) }}
+    {{ render_field(form.importe) }}
+
+
+
   <button type="submit" class="btn btn-default">Buscar</button>
 
 </form>
@@ -19,15 +22,15 @@
     <li class="list-group-item">
         <b>Registro N.  {{registro.id}}</b>
        <b>Cod PRODEIN.  {{registro.cod_prodein}}</b>
+   {{registro.importe}}
 
 
 
-            {{registro.periodicidad}}
         {{registro.concepto}}
 
 
 
-        <a href="registros_donacion_periodica/{{registro.id}}" class="btn btn-default pull-right">Ver/Modificar</a>
+        <a href="registros_donacion/{{registro.id}}" class="btn btn-default pull-right">Ver/Modificar</a>
          </li>
     {% endfor %}
     </ul>

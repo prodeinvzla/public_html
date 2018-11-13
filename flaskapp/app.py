@@ -2,11 +2,10 @@
 
 
 from flask import Flask, render_template, flash, redirect, url_for, session, request
-from flask_sqlalchemy import SQLAlchemy
-from models import db
-import models
+import datetime
+from models import Donacion, DonacionPeriodica, Principal
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from forms import DonacionPeriodicaForm, PrincipalForm
+from forms import DonacionForm, DonacionPeriodicaForm, PrincipalForm, RegisterForm
 from passlib.hash import sha256_crypt
 from functools import wraps
 from constants import (
@@ -20,7 +19,7 @@ from collections import OrderedDict
 import logging
 
 logging.basicConfig(filename='applog.log',level=logging.DEBUG)
-#from db import init_db
+from db import db
 from constants import external_db, local_db
 
 #init_db()
@@ -74,7 +73,224 @@ def is_logged_in(f):
 def index():
     return render_template('inicio.html')
 
+### DONACION
 
+@app.route('/registros_donacion', methods=['GET', 'POST'])
+def registros_donacion():
+    emptyform = DonacionForm(request.form)
+
+    if request.method == 'POST':
+        form = request.form
+
+        entries = db.session.query(Donacion)
+
+        if form['importe']:
+            entries = entries.filter(Donacion.importe.like(form['importe']))
+        if form['concepto']:
+            entries = entries.filter(Donacion.concepto.like(form['concepto']))
+        if form['cod_prodein']:
+            entries = entries.filter(Donacion.cod_prodein.like(form['cod_prodein']))
+
+        return render_template("registros_donacion.html", registros=entries, form=emptyform)
+
+    elif request.method == 'GET':
+        entries = db.session.query(Donacion)
+
+        return render_template("registros_donacion.html", registros=entries, form=emptyform)
+
+
+@app.route('/registros_donacion/<string:id>')
+def registro_donacion(id):
+    entry = db.session.query(Donacion).filter(Donacion.id.like(id)).first()
+    return render_template('registro_donacion.html', registro=entry)
+
+@app.route('/registros_donacion/<string:id>/modificar', methods=['GET','POST'])
+def modificar_registro_donacion(id):
+
+    entry = db.session.query(Donacion).filter(Donacion.id.like(id)).first()
+
+    if request.method == 'GET':
+        form = DonacionPeriodicaForm(
+            cod_prodein=entry.cod_prodein,
+            concepto=entry.concepto,
+            importe=float(entry.importe),
+            forma_pago=entry.forma_pago,
+        )
+        return render_template('agregar_donacion.html', form=form)
+
+    elif request.method == 'POST':
+        entry.cod_prodein = request.form['cod_prodein']
+        entry.concepto = request.form['concepto']
+        entry.importe = request.form['importe']
+        entry.forma_pago = request.form['forma_pago']
+        entry.fecha_modificacion = datetime.datetime.utcnow()
+
+        db.session.commit()
+
+        flash("Registro actualizado", 'success')
+        return redirect(url_for('registros_donacion'))
+    else:
+        pass
+
+
+@app.route('/agregar_donacion', methods=['GET', 'POST'])
+@is_logged_in
+def agregar_donacion():
+    try:
+        form = DonacionForm(request.form)
+        if request.method == 'POST' and form.validate():
+
+            cod_prodein = form.cod_prodein.data
+            concepto = form.concepto.data
+            importe = form.importe.data
+            forma_pago = form.forma_pago.data
+            donacion = Donacion(cod_prodein=cod_prodein,
+                                                    concepto=concepto,
+                                                    importe=importe,
+                                                    forma_pago=forma_pago,
+                                                    )
+            db.session.add(donacion)
+            db.session.commit()
+            flash('Registro creado', 'success')
+
+            return redirect(url_for('panel_de_control'))
+
+
+        return render_template('agregar_donacion.html',
+                               form=form)
+
+    except Exception as e:
+        logging.info(e)
+
+
+
+### DONACION PERIODICA
+
+@app.route('/registros_donacion_periodica', methods=['GET', 'POST'])
+def registros_don_rec():
+    emptyform = DonacionPeriodicaForm(request.form)
+
+    if request.method == 'POST':
+
+        form = request.form
+
+        entries = db.session.query(DonacionPeriodica)
+
+        if form['periodicidad']:
+            entries = entries.filter(DonacionPeriodica.periodicidad.like(form['periodicidad']))
+        if form['concepto']:
+            entries = entries.filter(DonacionPeriodica.concepto.like(form['concepto']))
+        if form['cod_prodein']:
+            entries = entries.filter(DonacionPeriodica.cod_prodein.like(form['cod_prodein']))
+
+        return render_template("registros_donacion_periodica.html", registros=entries, form=emptyform)
+
+    elif request.method == 'GET':
+        entries = db.session.query(DonacionPeriodica)
+
+        return render_template("registros_donacion_periodica.html", registros=entries, form=emptyform)
+
+
+@app.route('/registros_donacion_periodica/<string:id>')
+def registro_don_rec(id):
+    entry = db.session.query(DonacionPeriodica).filter(DonacionPeriodica.id.like(id)).first()
+    return render_template('registro_donacion_periodica.html', registro=entry)
+
+@app.route('/registros_donacion_periodica/<string:id>/modificar', methods=['GET','POST'])
+def modificar_registro_don_rec(id):
+
+    entry = db.session.query(DonacionPeriodica).filter(DonacionPeriodica.id.like(id)).first()
+
+    if request.method == 'GET':
+        try:
+            venc = datetime.datetime.strptime(entry.vencimiento, '%Y-%m-%d')
+        except:
+            venc = datetime.datetime(1900, 1, 1)
+        form = DonacionPeriodicaForm(
+            cod_prodein=entry.cod_prodein,
+            periodicidad=entry.periodicidad,
+            concepto=entry.concepto,
+            importe=float(entry.importe),
+            forma_pago=entry.forma_pago,
+            banco=entry.banco,
+            numero_cuenta=entry.numero_cuenta,
+            vencimiento=venc,
+            tipo_moneda=entry.tipo_moneda,
+            activo=entry.activo
+        )
+        return render_template('agregar_donacion_periodica.html', form=form)
+
+    elif request.method == 'POST':
+        entry.cod_prodein = request.form['cod_prodein']
+        entry.periodicidad = request.form['periodicidad']
+        entry.concepto = request.form['concepto']
+        entry.importe = request.form['importe']
+        entry.forma_pago = request.form['forma_pago']
+        entry.banco = request.form['banco']
+        entry.numero_cuenta = request.form['numero_cuenta']
+        entry.vencimiento = request.form['vencimiento']
+        entry.tipo_moneda = request.form['tipo_moneda']
+        entry.activo = True if request.form['activo'] == 'y' else False
+        entry.fecha_modificacion = datetime.datetime.utcnow()
+
+        db.session.commit()
+
+        flash("Registro actualizado", 'success')
+        return redirect(url_for('registros_don_rec'))
+    else:
+        pass
+
+
+@app.route('/agregar_donacion_periodica', methods=['GET', 'POST'])
+@is_logged_in
+def agregar_donacion_periodica():
+    #ids = [x.keys()[0] for x in identificaciones]
+    try:
+        form = DonacionPeriodicaForm(request.form)
+
+        if request.method == 'POST' and form.validate():
+
+            cod_prodein = form.cod_prodein.data
+            periodicidad = form.periodicidad.data
+            concepto = form.concepto.data
+            importe = form.importe.data
+            forma_pago = form.forma_pago.data
+            banco = form.banco.data
+            numero_cuenta = form.numero_cuenta.data
+            vencimiento = form.vencimiento.data
+            tipo_moneda = form.tipo_moneda.data
+            activo = form.activo.data
+
+            donacion_periodica = DonacionPeriodica(cod_prodein=cod_prodein,
+                                                    periodicidad=periodicidad,
+                                                    concepto=concepto,
+                                                    importe=importe,
+                                                    forma_pago=forma_pago,
+                                                    banco=banco,
+                                                    numero_cuenta=numero_cuenta,
+                                                    vencimiento=vencimiento,
+                                                    tipo_moneda=tipo_moneda,
+                                                    activo=activo,
+
+                                                    )
+            db.session.add(donacion_periodica)
+            db.session.commit()
+            flash('Registro creado', 'success')
+
+            return redirect(url_for('panel_de_control'))
+
+        #return render_template("hello.html")
+        logging.info("got here")
+        return render_template('agregar_donacion_periodica.html',
+                               form=form,
+                               periodicidades=periodicidades,
+                               formas_pago=formas_pago)
+
+    except Exception as e:
+        logging.info(e)
+
+
+### REGISTROS PRINCIPALES
 
 
 @app.route('/registros', methods=['GET', 'POST'])
@@ -113,39 +329,6 @@ def registro(id):
     except Exception as e:
         logging.info(e)
 
-@app.route('/registros_donacion_periodica', methods=['GET', 'POST'])
-def registros_don_rec():
-    emptyform = DonacionPeriodicaForm(request.form)
-
-    if request.method == 'POST':
-        form = request.form
-
-        whereclause = "WHERE "
-        for field in form:
-            if form[field] == '' or field not in ['cod_prodein', 'periodicidad', 'concepto']:
-                continue
-                #write a function to format the data in each field to appropriate value for the update clause.
-            whereclause += field +"='"+str(form[field])+"' and "
-
-        query = "SELECT * FROM donacion_periodica "
-        if whereclause[:-5] != '':
-            query += whereclause[:-5]
-        result, cols = run_sql(query)
-        output = result if result else []
-        return render_template("registros_donacion_periodica.html", registros=output, form=emptyform)
-
-    elif request.method == 'GET':
-        registros, cols = run_sql("SELECT * FROM donacion_periodica")
-        return render_template("registros_donacion_periodica.html", registros=registros, form=emptyform)
-
-
-@app.route('/registros_donacion_periodica/<string:id>')
-def registro_don_rec(id):
-    try:
-        result, cols = run_sql("SELECT * FROM donacion_periodica WHERE cod_prodein = '{}'".format(id))
-        return render_template('registro_donacion_periodica.html', cols=cols, registro=result[0])
-    except Exception as e:
-        logging.info(e)
 
 
 @app.route('/registros/<string:id>/modificar', methods=['GET','POST'])
@@ -166,7 +349,7 @@ def modificar_registro(id):
             logging.info(e)
     elif request.method == 'POST':
         print request.form
-        entry = db.session.query(models.Principal).filter_by(cod_prodein=id).first()
+        entry = db.session.query(Principal).filter_by(cod_prodein=id).first()
 
         entry.titulo = request.form['titulo']
         entry.nombre = request.form['nombre']
@@ -197,18 +380,6 @@ def modificar_registro(id):
         return redirect(url_for('registros'))
     else:
         pass
-
-
-class RegisterForm(Form):
-    name = StringField('Name', [validators.Length(min=1, max=50)])
-    username = StringField('Username', [validators.Length(min=4, max=25)])
-    email = StringField('Email', [validators.Length(min=6, max=50)])
-    password = PasswordField('Password', [
-        validators.DataRequired(),
-        validators.EqualTo('confirm', message='Passwords do not match')
-    ])
-    confirm = PasswordField('Confirm Password')
-
 
 @app.route('/agregar_registro', methods=['GET', 'POST'])
 @is_logged_in
@@ -242,7 +413,7 @@ def agregar_registro():
             activo = form.activo.data
             ejercitante = form.ejercitante.data
 
-            principal = models.Principal(titulo=titulo, nombre=nombre, apellido_1=apellido_1,
+            principal = Principal(titulo=titulo, nombre=nombre, apellido_1=apellido_1,
                                   apellido_2=apellido_2, identificacion=identificacion, tipo_id=tipo_id, telf_1=telf_1,
                                   telf_2=telf_2, telf_cel=telf_cel, vinculo=vinculo, email=email, direccion=direccion,
                                   estado=estado, ciudad=ciudad, municipio=municipio, voluntario=voluntario, adorador=adorador,
@@ -261,53 +432,7 @@ def agregar_registro():
         logging.info(e)
 
 
-@app.route('/agregar_donacion_periodica', methods=['GET', 'POST'])
-@is_logged_in
-def agregar_donacion_periodica():
-    #ids = [x.keys()[0] for x in identificaciones]
-    try:
-        form = DonacionPeriodicaForm(request.form)
-
-        if request.method == 'POST' and form.validate():
-
-            cod_prodein = form.cod_prodein.data
-            periodicidad = form.periodicidad.data
-            concepto = form.concepto.data
-            importe = form.importe.data
-            forma_pago = form.forma_pago.data
-            banco = form.banco.data
-            numero_cuenta = form.numero_cuenta.data
-            vencimiento = form.vencimiento.data
-            tipo_moneda = form.tipo_moneda.data
-            activo = form.activo.data
-
-            donacion_periodica = models.DonacionPeriodica(cod_prodein=cod_prodein,
-                                                    periodicidad=periodicidad,
-                                                    concepto=concepto,
-                                                    importe=importe,
-                                                    forma_pago=forma_pago,
-                                                    banco=banco,
-                                                    numero_cuenta=numero_cuenta,
-                                                    vencimiento=vencimiento,
-                                                    tipo_moneda=tipo_moneda,
-                                                    activo=activo,
-
-                                                    )
-            db.session.add(donacion_periodica)
-            db.session.commit()
-            flash('Registro creado', 'success')
-
-            return redirect(url_for('panel_de_control'))
-
-        #return render_template("hello.html")
-        logging.info("got here")
-        return render_template('agregar_donacion_periodica.html',
-                               form=form,
-                               periodicidades=periodicidades,
-                               formas_pago=formas_pago)
-
-    except Exception as e:
-        logging.info(e)
+####  USUARIOS
 
 
 @app.route('/registro_usuarios', methods=['GET', 'POST'])
@@ -397,7 +522,6 @@ def panel_de_control():
                                )
     except Exception as e:
         logging.info(e)
-
 
 
 if __name__ == '__main__':

@@ -1,8 +1,6 @@
 # from app import db
 import datetime
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from db import db
 
 class User(db.Model):
     __tablename__ = "users"
@@ -91,6 +89,8 @@ class DonacionPeriodica(db.Model):
     fecha_alta = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     fecha_modificacion = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     fecha_baja = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    # cod_prodein = db.relationship("Principal", backref=db.backref(
+    #     "donacion_periodica", order_by=id))
 
 
 class Donacion(db.Model):
@@ -103,5 +103,7 @@ class Donacion(db.Model):
     fecha_alta = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     fecha_modificacion = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     fecha_baja = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    cod_donador = db.relationship("Principal", backref=db.backref(
-        "donacion", order_by=id))
+    # cod_prodein = db.relationship("Principal", backref=db.backref(
+    #     "donacion", order_by=id))
+
+
